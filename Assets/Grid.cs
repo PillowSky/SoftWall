@@ -9,10 +9,7 @@ public class Grid : MonoBehaviour {
 	private Vector3[] vertices;
 	private Mesh mesh;
 	
-	private RaycastHit target;
-	private Vector3 targetV;
-	private bool active;
-	private int selected;
+	private Vector3 src;
 	
 	private void Awake () {
 		Generate();
@@ -23,41 +20,25 @@ public class Grid : MonoBehaviour {
 	}
 	
 	public void Update () {
-		if (active) {
-			if (Input.GetMouseButtonUp(0)) {
-				active = false;
-			} else {
-				Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-				float step = - ray.origin[2] / ray.direction[2];
-				Vector3 current = new Vector3 (
-					ray.origin[0] + ray.direction[0] * step,
-					ray.origin[1] + ray.direction[1] * step,
-					ray.origin[2] + ray.direction[2] * step
-					);
-				//Debug.Log(current);
-				target.transform.position = current;
-				vertices[selected] = current;
-				mesh.vertices = vertices;
-			}
+		if (Input.GetMouseButtonDown(0)) {
+			// begin drag
+			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+			src = ray.origin + ray.direction * (- ray.origin.z / ray.direction.z);
 		} else {
+			//render stage
 			if (Input.GetMouseButton(0)) {
 				Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-				RaycastHit hit;
-				if (Physics.Raycast(ray, out hit)){
-					target = hit;
-					active = true;
-					Vector3 pos = hit.transform.position;
-					for (int i = 0; i < vertices.Length; i++) {
-						if (pos.Equals(vertices[i])) {
-							selected = i;
-							break;
-						}
-					}
+				Vector3 dest = ray.origin + ray.direction * (- ray.origin.z / ray.direction.z);
+				Vector3 diff = dest - src;
+
+				for (int i = 0; i < vertices.Length; i++) {
+					vertices[i] += diff / (1 + (src - vertices[i]).sqrMagnitude); 
 				}
+				mesh.vertices = vertices;
+
+				src = dest;
 			}
 		}
-		
-		
 	}
 	
 	private void Generate () {
@@ -83,16 +64,7 @@ public class Grid : MonoBehaviour {
 			}
 		}
 		mesh.triangles = triangles;
-		mesh.RecalculateNormals();
-		
-		Vector3 sphereScale = new Vector3(0.25f, 0.25f, 0.25f);
-		for (int i = 0, y = 0; y <= ySize; y++) {
-			for (int x = 0; x <= xSize; x++, i++) {
-				GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-				sphere.transform.position = vertices[i];
-				sphere.transform.localScale = sphereScale;
-			}
-		}
+		mesh.RecalculateNormals();;
 	}
 	
 }
